@@ -1,0 +1,25 @@
+{
+  "name": "alpo",
+  "config": {
+    "dburl": "http://localhost:5984"
+  },
+  "version": "0.0.0",
+  "description": "CouchDB project...",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "standard && cdbb $npm_package_config_dburl db",
+    "lint": "standard"
+  },
+  "keywords": ["alpo"],
+  "license": "AGPL-3.0",
+  "repository": "millette/alpo",
+  "author": {
+    "name": "Robin Millette",
+    "email": "robin@millette.info",
+    "url": "http://robin.millette.info"
+  },
+  "devDependencies": {
+    "couchdb-bootstrap": "^1.14.0",
+    "standard": "^7.1.2"
+  }
+}
