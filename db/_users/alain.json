@@ -1,8 +1,8 @@
 {
-	"_id": "org.couchdb.user:alain",
-	"name": "alain",
-	"roles": [],
-	"type": "user",
-	"password": "alain"
+  "_id": "org.couchdb.user:alain",
+  "name": "alain",
+  "roles": ["alpo:r1"],
+  "type": "user",
+  "password": "alain"
 }
 
