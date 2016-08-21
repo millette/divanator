@@ -8,8 +8,7 @@
   "main": "index.js",
   "scripts": {
     "deploy": "standard && cdbb $npm_package_config_dburl db",
-    "lint": "standard",
-    "bab": "standard && babel"
+    "lint": "standard"
   },
   "keywords": [
     "alpo"
@@ -22,16 +21,11 @@
     "url": "http://robin.millette.info"
   },
   "devDependencies": {
-    "babel-cli": "^6.11.4",
+    "babel-core": "^6.13.1",
     "babel-eslint": "^6.1.2",
     "babel-preset-es2015": "^6.13.1",
-    "couchdb-bootstrap": "^1.14.0",
-    "standard": "^7.1.2"
-  },
-  "babel": {
-    "presets": [
-      "es2015"
-    ]
+    "standard": "^7.1.2",
+    "uglify-js": "^2.7.0"
   },
   "standard": {
     "ignore": [
