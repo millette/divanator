@@ -69,7 +69,7 @@ const divanatorFile = (() => {
         const y = path.format(z)
         const x = y.split('/')
         const xl = x.length
-        const ddoc = { id: '_design/' + fn.split('/').slice(-xl - 1, -xl)[0] }
+        const ddoc = { _id: '_design/' + fn.split('/').slice(-xl - 1, -xl)[0] }
 
         switch (xl) {
           case 1:
@@ -102,5 +102,7 @@ module.exports = (ddocPath) => getFiles(ddocPath)
   .then((g) => {
     const ddoc = { }
     g.forEach((a) => { _.merge(ddoc, a) })
-    return ddoc
+    return ddoc._id
+      ? ddoc
+      : Promise.reject(new Error('Are you sure ' + ddocPath + ' is a design doc?'))
   })
