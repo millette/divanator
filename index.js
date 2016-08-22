@@ -68,13 +68,10 @@ const divanatorFile = (() => {
         z.base = z.name // remove extension
         const y = path.format(z)
         const x = y.split('/')
-        const x2 = fn.split('/')
+        const xl = x.length
+        const ddoc = { id: '_design/' + fn.split('/').slice(-xl - 1, -xl)[0] }
 
-        const ddoc = {
-          id: '_design/' + x2.slice(-x.length - 1, -x.length)[0]
-        }
-
-        switch (x.length) {
+        switch (xl) {
           case 1:
             ddoc[x[0]] = a
             return ddoc
@@ -97,9 +94,7 @@ const divanatorFile = (() => {
   }
 })()
 
-const jsonlog = (x) => console.log(JSON.stringify(x, null, ' '))
-
-const divanator = (ddocPath) => getFiles(ddocPath)
+module.exports = (ddocPath) => getFiles(ddocPath)
   .then((f) => {
     const resolver = path.resolve.bind(null, ddocPath)
     return Promise.all(f.map((z) => divanatorFile(z, resolver)))
@@ -109,7 +104,3 @@ const divanator = (ddocPath) => getFiles(ddocPath)
     g.forEach((a) => { _.merge(ddoc, a) })
     return ddoc
   })
-
-divanator('ddoc/app')
-  .then(jsonlog)
-  .catch(console.log)
