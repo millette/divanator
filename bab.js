@@ -1,3 +1,5 @@
+'use strict'
+
 // core
 const path = require('path')
 const fs = require('fs')
@@ -5,19 +7,29 @@ const fs = require('fs')
 // npm
 const UglifyJS = require('uglify-js')
 const babel = require('babel-core')
-const pify = require('pify')
 const _ = require('lodash')
+const glob = require('glob')
 
-const readDir = pify(fs.readdir)
+const readFile = (fn) => new Promise((resolve, reject) => fs.readFile(
+  fn, 'utf-8',
+  (err, ok) => err ? reject(new Error(err)) : resolve(ok.trim())
+))
 
-/*
-f.forEach((z) => {
-  divanatorFile(resolve(z))
-    .then((y) => {
-      ddoc[path.basename(z, path.extname(z))] = y
-    })
-})
-*/
+const globNoLib = (w, p) => new Promise((resolve, reject) => glob(
+  p, { cwd: w, ignore: 'views/lib/**' },
+  (err, ok) => err ? reject(new Error(err)) : resolve(ok)
+))
+
+const getFiles = (w) => {
+  const g = globNoLib.bind(null, w)
+  return Promise.all([
+    g('*(rewrites.json|rewrites.js|validate_doc_update.js)'),
+    g('*(shows|lists|filters|updates)/*.js'),
+    g('views/*/map.js'),
+    g('views/*/reduce'),
+    g('views/*/reduce.js')
+  ]).then(_.flatten)
+}
 
 const divanatorFile = (() => {
   const noiife = (() => {
@@ -31,130 +43,73 @@ const divanatorFile = (() => {
   })()
   const transform = (fn, resolve, reject) => babel.transformFile(
     fn, { presets: ['es2015'] },
-    (err, ok) => err ? Promise.reject(new Error(err)) : minjs(noiife(ok))
+    (err, ok) => err ? reject(new Error(err)) : resolve(minjs(noiife(ok)))
   )
-  return (fn) => {
-    console.log('fn:', fn)
+
+  return (fn2, resolver) => {
+    const fn = resolver(fn2)
+    let out
     switch (path.extname(fn)) {
       case '.js':
-        return new Promise(transform.bind(null, fn))
+        out = new Promise(transform.bind(null, fn))
+        break
       case '.json':
-        return Promise.resolve(require(fn))
+        out = require(fn)
+        break
+      case '':
+        out = readFile(fn)
+        break
       default:
         throw new Error('unknown extension')
     }
+    return Promise.resolve(out)
+      .then((a) => {
+        const z = path.parse(fn2)
+        z.base = z.name // remove extension
+        const y = path.format(z)
+        const x = y.split('/')
+        const x2 = fn.split('/')
+
+        const ddoc = {
+          id: '_design/' + x2.slice(-x.length - 1, -x.length)[0]
+        }
+
+        switch (x.length) {
+          case 1:
+            ddoc[x[0]] = a
+            return ddoc
+
+          case 2:
+            ddoc[x[0]] = { }
+            ddoc[x[0]][x[1]] = a
+            return ddoc
+
+          case 3:
+            ddoc[x[0]] = { }
+            ddoc[x[0]][x[1]] = { }
+            ddoc[x[0]][x[1]][x[2]] = a
+            return ddoc
+
+          default:
+            throw new Error('In too deep.')
+        }
+      })
   }
 })()
 
 const jsonlog = (x) => console.log(JSON.stringify(x, null, ' '))
 
-const divanator = (ddocPath) => {
-  const resolve = path.resolve.bind(null, ddocPath)
+const divanator = (ddocPath) => getFiles(ddocPath)
+  .then((f) => {
+    const resolver = path.resolve.bind(null, ddocPath)
+    return Promise.all(f.map((z) => divanatorFile(z, resolver)))
+  })
+  .then((g) => {
+    const ddoc = { }
+    g.forEach((a) => { _.merge(ddoc, a) })
+    return ddoc
+  })
 
-  const ddoc = {
-    _id: '_design/' + path.basename(ddocPath),
-    language: 'javascript'
-  }
-
-  const wantFiles = [
-    'rewrites.json',
-    'validate_doc_update.js'
-    // 'rewrites.js', TODO
-    // '_security.json', TODO
-  ]
-
-/*
-  const wantDirs = [
-    'shows',
-    'lists',
-    'filters',
-    'updates',
-    'views'
-  ]
-*/
-
-  return readDir(ddocPath)
-    .then((paths) => {
-      const finder = _.intersection.bind(null, paths)
-      const f = finder(wantFiles)
-      // const d = finder(wantDirs)
-      // console.log(paths)
-      // console.log(f)
-      // console.log(d)
-
-      f.forEach((z) => {
-        divanatorFile(resolve(z))
-          .then((y) => {
-            ddoc[path.basename(z, path.extname(z))] = y
-          })
-      })
-
-/*
-      const i = d.indexOf('views')
-      if (i !== -1) {
-        delete d[i]
-        readDir(resolve('views'))
-          .then((y) => {
-            console.log('n2:', y)
-          })
-      }
-
-      d.forEach((z, n) => {
-        readDir(resolve(z))
-          .then((y) => {
-            console.log('n:', n, z, y)
-
-            y.forEach((za) => {
-              ddoc[z] = { }
-              divanatorFile(resolve(z, za))
-                .then((ya) => {
-                  // console.log('ya:', ya)
-                  // console.log('ay:', path.extname(za), path.basename(za, path.extname(za)))
-                  ddoc[z][path.basename(za, path.extname(za))] = ya
-                  jsonlog(ddoc)
-                })
-            })
-          })
-      })
-*/
-    })
-    .then(() => ddoc)
-    .catch(console.log)
-
-  /*
-   * now we should go looking for directories and files:
-   * (using @ in place of *)
-   * _security.json
-   * rewrites.{json|js} // TODO: js with CouchDB 1.7 at least
-   * validate_doc_update.js
-   * shows/@.js
-   * lists/@.js
-   * filters/@.js
-   * updates/@.js
-   * views/lib/@@
-   * views/@/{map|reduce}[.js]
-   *
-   */
-}
-
-/*
-  return Promise.all([
-    divanatorFile(resolve('shows/front.js')),
-    divanatorFile(resolve('views/i1/map.js'))
-  ])
-    .then((x) => {
-      return {
-        _id: '_design/' + lp,
-        rewrites: require(resolve('rewrites.json')),
-        language: 'javascript',
-        shows: { front: x[0] },
-        views: { i1: { map: x[1], reduce: '_count' } }
-      }
-    })
-}
-*/
-
-// divanator('.')
 divanator('ddoc/app')
   .then(jsonlog)
   .catch(console.log)
