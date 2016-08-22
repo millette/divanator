@@ -1,5 +1,5 @@
 {
-  "name": "alpo",
+  "name": "divanator",
   "config": {
     "dburl": "http://localhost:5984"
   },
@@ -13,10 +13,11 @@
     "coverage": "nyc report --reporter=text-lcov | coveralls"
   },
   "keywords": [
-    "alpo"
+    "couchdb",
+    "babel"
   ],
   "license": "AGPL-3.0",
-  "repository": "millette/alpo",
+  "repository": "millette/divanator",
   "author": {
     "name": "Robin Millette",
     "email": "robin@millette.info",
