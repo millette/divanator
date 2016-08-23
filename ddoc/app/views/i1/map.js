@@ -1,4 +1,4 @@
 /* globals emit */
-(() => function (doc) {
+export default function (doc) {
   emit(doc._id, doc._rev)
-})()
+}
