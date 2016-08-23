@@ -10,6 +10,6 @@ if (!process.argv[2]) {
   process.exit()
 }
 
-divanator(process.argv[2])
+divanator(process.argv[2], process.argv[3])
   .then(jsonlog)
   .catch(console.error)
