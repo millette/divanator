@@ -61,8 +61,8 @@ const divanatorFile = (() => {
       case '':
         out = readFile(fn)
         break
-      default:
-        throw new Error('unknown extension')
+      // default:
+        // throw new Error('unknown extension')
     }
     return Promise.resolve(out)
       .then((a) => {
@@ -76,22 +76,23 @@ const divanatorFile = (() => {
         switch (xl) {
           case 1:
             ddoc[x[0]] = a
-            return ddoc
+            break
 
           case 2:
             ddoc[x[0]] = { }
             ddoc[x[0]][x[1]] = a
-            return ddoc
+            break
 
           case 3:
             ddoc[x[0]] = { }
             ddoc[x[0]][x[1]] = { }
             ddoc[x[0]][x[1]][x[2]] = a
-            return ddoc
+            break
 
-          default:
-            throw new Error('In too deep.')
+          // default:
+            // throw new Error('In too deep.')
         }
+        return ddoc
       })
   }
 })()
