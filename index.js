@@ -103,9 +103,8 @@ module.exports = (ddocPath, dbURL) => getFiles(ddocPath)
   })
   .then((g) => {
     const ddoc = _.merge.apply(null, g)
-    return ddoc._id
-      ? ddoc
-      : Promise.reject(new Error('Are you sure ' + ddocPath + ' is a design doc?'))
+    if (!ddoc._id) { throw new Error('Are you sure ' + ddocPath + ' is a design doc?') }
+    return ddoc
   })
   .then((g) => {
     if (!dbURL) { return g }
@@ -114,7 +113,7 @@ module.exports = (ddocPath, dbURL) => getFiles(ddocPath)
     return Promise.all([g, db, info()])
   })
   .then((gg) => {
-    if (gg._id) { return gg }
+    if (!dbURL) { return gg }
     const g = gg[0]
     const db = gg[1]
     const head = (docid) => new Promise((resolve, reject) =>
