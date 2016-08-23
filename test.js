@@ -9,4 +9,4 @@ test('go', async t => {
 
 test('not a ddoc', async t => await t.throws(fn('ddoc/app666'), 'Are you sure ddoc/app666 is a design doc?'))
 
-test('not a db', async t => await t.throws(fn('ddoc/app', 'http://localhost:5984/notexist'), 'no_db_file'))
+test.skip('not a db', async t => await t.throws(fn('ddoc/app', 'http://localhost:5984/notexist'), 'no_db_file'))
