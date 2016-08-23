@@ -9,6 +9,8 @@ const UglifyJS = require('uglify-js')
 const babel = require('babel-core')
 const _ = require('lodash')
 const glob = require('glob')
+const nano = require('nano')
+const pify = require('pify')
 
 const readFile = (fn) => new Promise((resolve, reject) => fs.readFile(
   fn, 'utf-8',
@@ -94,7 +96,7 @@ const divanatorFile = (() => {
   }
 })()
 
-module.exports = (ddocPath) => getFiles(ddocPath)
+module.exports = (ddocPath, dbURL) => getFiles(ddocPath)
   .then((f) => {
     const resolver = path.resolve.bind(null, ddocPath)
     return Promise.all(f.map((z) => divanatorFile(z, resolver)))
@@ -104,4 +106,25 @@ module.exports = (ddocPath) => getFiles(ddocPath)
     return ddoc._id
       ? ddoc
       : Promise.reject(new Error('Are you sure ' + ddocPath + ' is a design doc?'))
+  })
+  .then((g) => {
+    if (!dbURL) { return g }
+    const db = nano(dbURL)
+    const info = pify(db.info)
+    return Promise.all([g, db, info()])
+  })
+  .then((gg) => {
+    if (gg._id) { return gg }
+    const g = gg[0]
+    const db = gg[1]
+    const head = (docid) => new Promise((resolve, reject) =>
+      db.head(docid, (err, body, headers) => resolve(err ? { } : headers))
+    )
+    const insert = pify(db.insert)
+    return head(g._id)
+      .then((a) => {
+        if (a.etag) { g._rev = a.etag.slice(1, -1) }
+        return g
+      })
+      .then(insert)
   })
