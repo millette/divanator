@@ -100,8 +100,7 @@ module.exports = (ddocPath) => getFiles(ddocPath)
     return Promise.all(f.map((z) => divanatorFile(z, resolver)))
   })
   .then((g) => {
-    const ddoc = { }
-    g.forEach((a) => { _.merge(ddoc, a) })
+    const ddoc = _.merge.apply(null, g)
     return ddoc._id
       ? ddoc
       : Promise.reject(new Error('Are you sure ' + ddocPath + ' is a design doc?'))
