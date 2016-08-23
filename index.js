@@ -34,18 +34,14 @@ const getFiles = (w) => {
 }
 
 const divanatorFile = (() => {
-  const noiife = (() => {
-    const re = /return (function *\([^]+\};)/m
-    return (x) => x.code.match(re)[1]
-  })()
   const minjs = (() => {
     const repin = (str) => str.replace('function (', 'function fn(')
     const repout = (str) => str.replace('function fn(', 'function(')
-    return (str) => repout(UglifyJS.minify(repin(str), { fromString: true }).code)
+    return (str) => repout(UglifyJS.minify(repin(str.code.slice(99, -1)), { fromString: true }).code)
   })()
   const transform = (fn, resolve, reject) => babel.transformFile(
     fn, { presets: ['es2015'] },
-    (err, ok) => err ? reject(new Error(err)) : resolve(minjs(noiife(ok)))
+    (err, ok) => err ? reject(new Error(err)) : resolve(minjs(ok))
   )
 
   return (fn2, resolver) => {
