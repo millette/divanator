@@ -10,6 +10,13 @@ test('show front', t => {
   t.is(result, '<html><head><meta charset="utf-8"></head><body><p>Hello monde</p><pre>{}</pre><pre>{}</pre>')
 })
 
+test('show front 404', t => {
+  const doc = null
+  const req = { id: 'abc' }
+  const result = fn(doc, req)
+  t.is(result.code, 404)
+})
+
 test('view il', t => {
   const doc = { _id: 'le-id', _rev: '1-abc' }
   t.plan(2)
