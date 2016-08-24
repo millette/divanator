@@ -1,4 +1,6 @@
 /* globals emit */
-export default function (doc) {
-  emit(doc._id, doc._rev)
+'use strict'
+module.exports = function (doc, mocks) {
+  if (!mocks) { mocks = { emit: emit } }
+  mocks.emit(doc._id, doc._rev)
 }
