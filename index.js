@@ -34,10 +34,15 @@ const getFiles = (w) => {
 }
 
 const divanatorFile = (() => {
+  const exported = (() => {
+    const re = /module.exports = (function \([^]+\})/
+    return (str) => str.code.match(re)[1]
+  })()
   const minjs = (() => {
     const repin = (str) => str.replace('function (', 'function fn(')
     const repout = (str) => str.replace('function fn(', 'function(')
-    return (str) => repout(UglifyJS.minify(repin(str.code.slice(99, -1)), { fromString: true }).code)
+    return (str) =>
+      repout(UglifyJS.minify(repin(exported(str)), { fromString: true }).code)
   })()
   const transform = (fn, resolve, reject) => babel.transformFile(
     fn, { presets: ['es2015'] },
