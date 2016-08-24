@@ -11,14 +11,20 @@ const _ = require('lodash')
 const glob = require('glob')
 const nano = require('nano')
 const pify = require('pify')
+const fileType = require('file-type')
 
-const readFile = (fn) => new Promise((resolve, reject) => fs.readFile(
-  fn, 'utf-8',
-  (err, ok) => err ? reject(new Error(err)) : resolve(ok.trim())
+const readFile = (fn, bin) => new Promise((resolve, reject) => fs.readFile(
+  fn, bin ? null : 'utf-8',
+  (err, ok) => err ? reject(new Error(err)) : resolve(ok)
 ))
 
 const globNoLib = (w, p) => new Promise((resolve, reject) => glob(
   p, { cwd: w, ignore: 'views/lib/**' },
+  (err, ok) => err ? reject(new Error(err)) : resolve(ok)
+))
+
+const globAtts = (w) => new Promise((resolve, reject) => glob(
+  'files/*', { cwd: w, nodir: true },
   (err, ok) => err ? reject(new Error(err)) : resolve(ok)
 ))
 
@@ -98,34 +104,57 @@ const divanatorFile = (() => {
   }
 })()
 
-module.exports = (ddocPath, dbURL) => getFiles(ddocPath)
-  .then((f) => {
-    const resolver = path.resolve.bind(null, ddocPath)
-    return Promise.all(f.map((z) => divanatorFile(z, resolver)))
-  })
-  .then((g) => {
-    const ddoc = _.merge.apply(null, g)
-    if (!ddoc._id) { throw new Error('Are you sure ' + ddocPath + ' is a design doc?') }
-    return ddoc
-  })
-  .then((g) => {
-    if (!dbURL) { return g }
-    const db = nano(dbURL)
-    const info = pify(db.info)
-    return Promise.all([g, db, info()])
-  })
-  .then((gg) => {
-    if (!dbURL) { return gg }
-    const g = gg[0]
-    const db = gg[1]
-    const head = (docid) => new Promise((resolve, reject) =>
-      db.head(docid, (err, body, headers) => resolve(err ? { } : headers))
-    )
-    const insert = pify(db.insert)
-    return head(g._id)
-      .then((a) => {
-        if (a.etag) { g._rev = a.etag.slice(1, -1) }
-        return g
-      })
-      .then(insert)
-  })
+module.exports = (ddocPath, dbURL) => {
+  const resolver = path.resolve.bind(null, ddocPath)
+
+  const p = getFiles(ddocPath)
+    .then((f) => Promise.all(f.map((z) => divanatorFile(z, resolver))))
+    .then((g) => {
+      const ddoc = _.merge.apply(null, g)
+      if (!ddoc._id) { throw new Error('Are you sure ' + ddocPath + ' is a design doc?') }
+      return ddoc
+    })
+
+  if (!dbURL) { return p }
+
+  const db = nano(dbURL)
+  return p
+    .then((ddoc) => {
+      const info = pify(db.info)
+      return Promise.all([ddoc, info()])
+    })
+    .then((gg) => {
+      const ddoc = gg[0]
+      const head = (docid) => new Promise((resolve, reject) =>
+        db.head(docid, (err, body, headers) => resolve(err ? { } : headers))
+      )
+      return Promise.all([ddoc, head(ddoc._id)])
+    })
+    .then((gg) => {
+      const ddoc = gg[0]
+      const a = gg[1]
+      if (a.etag) { ddoc._rev = a.etag.slice(1, -1) }
+      return ddoc
+    })
+    .then((ddoc) => Promise.all([ddoc, globAtts(ddocPath)]))
+    .then((gg) => {
+      const ddoc = gg[0]
+      const atts = gg[1]
+      const attObj = (fn, f) => {
+        return {
+          name: path.basename(fn),
+          data: f,
+          content_type: fileType(f).mime
+        }
+      }
+      const ha = atts.map((fn) => readFile(resolver(fn), true).then(attObj.bind(null, fn)))
+      ha.unshift(ddoc)
+      return Promise.all(ha)
+    })
+    .then((tt) => {
+      const ddoc = tt[0]
+      const atts = tt.slice(1)
+      const insert = pify(db.multipart.insert)
+      return insert(ddoc, atts, ddoc._id)
+    })
+}
