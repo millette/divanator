@@ -12,6 +12,7 @@ const glob = require('glob')
 const nano = require('nano')
 const pify = require('pify')
 const fileType = require('file-type')
+const mime = require('mime')
 
 const readFile = (fn, bin) => new Promise((resolve, reject) => fs.readFile(
   fn, bin ? null : 'utf-8',
@@ -141,10 +142,12 @@ module.exports = (ddocPath, dbURL) => {
       const ddoc = gg[0]
       const atts = gg[1]
       const attObj = (fn, f) => {
+        let ft = fileType(f)
+        ft = ft && ft.mime ? ft.mime : mime.lookup(fn)
         return {
           name: path.basename(fn),
           data: f,
-          content_type: fileType(f).mime
+          content_type: ft
         }
       }
       const ha = atts.map((fn) => readFile(resolver(fn), true).then(attObj.bind(null, fn)))
