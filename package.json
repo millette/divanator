@@ -27,6 +27,7 @@
   "dependencies": {
     "babel-core": "^6.13.2",
     "babel-preset-es2015": "^6.13.2",
+    "file-type": "^3.8.0",
     "glob": "^7.0.5",
     "lodash": "^4.15.0",
     "nano": "^6.2.0",
