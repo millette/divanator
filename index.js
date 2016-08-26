@@ -13,6 +13,7 @@ const nano = require('nano')
 const pify = require('pify')
 const fileType = require('file-type')
 const mime = require('mime')
+const lodashCli = require('lodash-cli')
 
 const readFile = (fn, bin) => new Promise((resolve, reject) => fs.readFile(
   fn, bin ? null : 'utf-8',
@@ -28,6 +29,22 @@ const globAtts = (w) => new Promise((resolve, reject) => glob(
   'files/*', { cwd: w, nodir: true },
   (err, ok) => err ? reject(new Error(err)) : resolve(ok)
 ))
+
+const compileTemplates = () => globNoLib('templates', '*.html')
+  .then((a) => {
+    if (a.length) { return a }
+    throw new Error('No files.')
+  })
+  .then(() => new Promise((resolve, reject) => {
+    const cb = (data) => {
+      if (data.message) { throw new Error(data.message) }
+      const re = /^\/\*\*[^]+\*\/\n;([^]+);$/m
+      const z = data.source.match(re)
+      if (z[1]) { return resolve(z[1]) }
+      reject(new Error('No code.'))
+    }
+    lodashCli('-p moduleId=none settings={variable:"data"} template=templates/*.html exports=node strict'.split(' '), cb)
+  }))
 
 const getFiles = (w) => {
   const g = globNoLib.bind(null, w)
@@ -115,6 +132,16 @@ module.exports = (ddocPath, dbURL) => {
       if (!ddoc._id) { throw new Error('Are you sure ' + ddocPath + ' is a design doc?') }
       return ddoc
     })
+    .then((ddoc) => compileTemplates()
+      .then((a) => {
+        if (!a) { return ddoc }
+        if (!ddoc.views) { ddoc.views = { } }
+        if (!ddoc.views.lib) { ddoc.views.lib = { } }
+        ddoc.views.lib.templates = a
+        return ddoc
+      })
+      .catch((e) => ddoc)
+    )
 
   if (!dbURL) { return p }
 
